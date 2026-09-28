@@ -24,6 +24,8 @@ interface StudioState {
   setSession: (session: StudioSession) => void;
   updateSession: (id: string, data: Partial<StudioSession>) => void;
   deleteSession: (id: string) => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useStudioStore = create<StudioState>()(
@@ -31,7 +33,9 @@ export const useStudioStore = create<StudioState>()(
     (set) => ({
       sessions: {},
       activeSessionId: null,
+      _hasHydrated: false,
 
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       setActiveSession: (id) => set({ activeSessionId: id }),
 
       createSession: (name: string) => {
@@ -42,13 +46,13 @@ export const useStudioStore = create<StudioState>()(
           name,
           facts: [],
           chapters: [],
+          lastWhisper: null,
           createdAt: now,
           updatedAt: now,
         };
 
         set((state) => ({
           sessions: { ...state.sessions, [id]: newSession },
-          activeSessionId: id,
         }));
 
         return newSession;
@@ -90,6 +94,9 @@ export const useStudioStore = create<StudioState>()(
     {
       name: "aircheck-studio",
       storage: createJSONStorage(() => indexedDBStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

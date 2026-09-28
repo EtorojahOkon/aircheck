@@ -29,3 +29,16 @@ export function formatSessionDate(dateStr: string): string {
     return dateStr;
   }
 }
+
+export function calculateElapsedTime(createdAt: string): string {
+  const diff = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000),
+  );
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  return `${h > 0 ? h.toString().padStart(2, "0") + ":" : ""}${m
+    .toString()
+    .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}

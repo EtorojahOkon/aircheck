@@ -1,5 +1,5 @@
 export interface FactItem {
-  id: string;
+  id: number;
   query: string;
   fact: string;
   source?: string;
@@ -7,7 +7,7 @@ export interface FactItem {
 }
 
 export interface ChapterItem {
-  id: string;
+  id: number;
   title: string;
   timestamp: string;
 }
@@ -26,6 +26,7 @@ export interface StudioSession {
   name: string;
   facts: FactItem[];
   chapters: ChapterItem[];
+  lastWhisper: string | null;
   createdAt: string;
   updatedAt: string;
 }
