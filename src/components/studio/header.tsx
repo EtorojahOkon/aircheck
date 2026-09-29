@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Radio, RadioTower, FileDown, Volume2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EndSessionModal } from "@/components/studio/end-session";
+import { calculateElapsedTime } from "@/lib/utils";
 
 interface StudioHeaderProps {
   sessionTitle: string;
   isOnAir: boolean;
-  elapsedTime: string;
+  createdAt: string;
   onToggleOnAir: () => void;
   onOpenExport: () => void;
   isConnecting?: boolean;
@@ -18,13 +19,25 @@ interface StudioHeaderProps {
 export function StudioHeader({
   sessionTitle,
   isOnAir,
-  elapsedTime,
+  createdAt,
   onToggleOnAir,
   onOpenExport,
   onEndSession,
   isConnecting,
 }: StudioHeaderProps & { onEndSession?: () => void }) {
   const [showEndModal, setShowEndModal] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(() =>
+    calculateElapsedTime(createdAt)
+  );
+
+  useEffect(() => {
+    setElapsedTime(calculateElapsedTime(createdAt));
+    const timer = setInterval(() => {
+      setElapsedTime(calculateElapsedTime(createdAt));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [createdAt]);
 
   return (
     <>

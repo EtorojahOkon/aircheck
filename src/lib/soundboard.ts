@@ -31,20 +31,32 @@ export const TONE_PROFILES: Record<string, number[]> = {
     54, 40, 28, 20, 16, 12, 10, 8, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
     4, 4, 4, 4, 4, 4,
   ],
+  crickets: [
+    4, 8, 14, 20, 45, 60, 40, 25, 50, 70, 45, 20, 10, 30, 60, 40, 15, 10, 40,
+    65, 35, 15, 10, 35, 60, 30, 15, 10, 25, 50, 25, 10, 8, 6, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4,
+  ],
 };
 
 export interface SoundTone {
+  id?: string;
   label: string;
   key: string;
   hotkey: string;
   icon: string;
   tagline: string;
-  desc: string;
+  desc?: string;
   accent: string;
+  soundUrl?: string;
+  triggerKeyword?: string;
+  isCustom?: boolean;
 }
 
-export const TONES: SoundTone[] = [
+export type SoundPad = SoundTone;
+
+export const DEFAULT_PADS: SoundPad[] = [
   {
+    id: "pad-rimshot",
     label: "Rimshot",
     key: "rimshot",
     hotkey: "1",
@@ -52,8 +64,11 @@ export const TONES: SoundTone[] = [
     tagline: "Punchline & Jokes",
     desc: "Crisp stick hit and snare drop on comedic timing",
     accent: "text-amber-400",
+    soundUrl: "/sounds/rimshot.mp3",
+    triggerKeyword: "bad joke",
   },
   {
+    id: "pad-airhorn",
     label: "Airhorn",
     key: "airhorn",
     hotkey: "2",
@@ -61,8 +76,11 @@ export const TONES: SoundTone[] = [
     tagline: "Hype & Energy",
     desc: "Dual sawtooth brass blast for high-energy announcements",
     accent: "text-orange-400",
+    soundUrl: "/sounds/air-horn.mp3",
+    triggerKeyword: "hype",
   },
   {
+    id: "pad-applause",
     label: "Applause",
     key: "applause",
     hotkey: "3",
@@ -70,26 +88,35 @@ export const TONES: SoundTone[] = [
     tagline: "Wins & Guest Intros",
     desc: "Warm crowd clapping burst on milestones and shoutouts",
     accent: "text-emerald-400",
+    soundUrl: "/sounds/applause.mp3",
+    triggerKeyword: "applause",
   },
   {
-    label: "Boom Drop",
-    key: "boom",
+    id: "pad-crickets",
+    label: "Crickets",
+    key: "crickets",
     hotkey: "4",
-    icon: "💥",
-    tagline: "Dramatic Reveals",
-    desc: "Sub-bass 808 drop for plot twists and big takes",
+    icon: "🦗",
+    tagline: "Awkward Silence",
+    desc: "Quiet insect chirps on dry jokes or silent moments",
     accent: "text-rose-400",
+    soundUrl: "/sounds/crickets.mp3",
+    triggerKeyword: "awkward silence",
   },
   {
-    label: "Chime",
+    id: "pad-chime",
+    label: "Bell Chime",
     key: "chime",
     hotkey: "5",
     icon: "🔔",
     tagline: "Facts & Stats",
     desc: "Clean crystal bell accent on verified fact checks",
     accent: "text-cyan-400",
+    soundUrl: "/sounds/bell.mp3",
+    triggerKeyword: "fact check",
   },
   {
+    id: "pad-trombone",
     label: "Sad Trombone",
     key: "trombone",
     hotkey: "6",
@@ -97,124 +124,65 @@ export const TONES: SoundTone[] = [
     tagline: "Fails & Groans",
     desc: "Descending stepped wah-wah on funny host slip-ups",
     accent: "text-violet-400",
+    soundUrl: "/sounds/trombone.mp3",
+    triggerKeyword: "epic fail",
   },
 ];
 
-export const playDemoSound = (type: string) => {
-  if (typeof window === "undefined") return;
-  const AudioCtx =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext })
-      .webkitAudioContext;
-  const ctx = new AudioCtx();
-  const t = ctx.currentTime;
+export const TONES: SoundTone[] = DEFAULT_PADS;
 
-  switch (type) {
-    case "rimshot": {
-      // High-pitched stick hit + snare sweep
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(440, t);
-      osc.frequency.exponentialRampToValueAtTime(70, t + 0.15);
-      gain.gain.setValueAtTime(0.8, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 0.15);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.15);
-      break;
-    }
+const DEFAULT_AUDIO_MAP: Record<string, string> = {
+  rimshot: "/sounds/rimshot.mp3",
+  airhorn: "/sounds/air-horn.mp3",
+  applause: "/sounds/applause.mp3",
+  crickets: "/sounds/crickets.mp3",
+  chime: "/sounds/bell.mp3",
+  bell: "/sounds/bell.mp3",
+  boom: "/sounds/bell.mp3",
+  trombone: "/sounds/trombone.mp3",
+};
 
-    case "boom": {
-      // Thunderous kick drop
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(130, t);
-      osc.frequency.exponentialRampToValueAtTime(28, t + 1.0);
-      gain.gain.setValueAtTime(0.95, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 1.0);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 1.0);
-      break;
-    }
+export const playSound = (soundOrKey: string) => {
+  if (typeof window === "undefined" || !soundOrKey) return;
 
-    case "airhorn": {
-      // Dual-oscillator sawtooth blast
-      [493.88, 740].forEach((freq) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(freq, t);
-        gain.gain.setValueAtTime(0.45, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.55);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t);
-        osc.stop(t + 0.55);
-      });
-      break;
-    }
+  let audioSrc = soundOrKey;
 
-    case "applause": {
-      // Filtered noise burst simulating crowd claps
-      const bufferSize = ctx.sampleRate * 1.2;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = 1200;
-      filter.Q.value = 0.6;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.4, t + 0.3);
-      gain.gain.linearRampToValueAtTime(0.01, t + 1.2);
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      source.start(t);
-      source.stop(t + 1.2);
-      break;
-    }
-
-    case "trombone": {
-      // Descending stepped pitch slide (wah-wah-wah-waah)
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(260, t);
-      osc.frequency.linearRampToValueAtTime(245, t + 0.35);
-      osc.frequency.linearRampToValueAtTime(225, t + 0.7);
-      osc.frequency.linearRampToValueAtTime(185, t + 1.3);
-      gain.gain.setValueAtTime(0.42, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 1.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 1.3);
-      break;
-    }
-
-    case "chime":
-    default: {
-      // Bright bell chime
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, t);
-      gain.gain.setValueAtTime(0.35, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.5);
-      break;
+  if (
+    !audioSrc.startsWith("data:") &&
+    !audioSrc.startsWith("/") &&
+    !audioSrc.startsWith("http")
+  ) {
+    try {
+      // Dynamic require avoids top-level circular module evaluation
+      const { useStudioStore } = require("@/store/studio-store");
+      const customPads = useStudioStore.getState()?.settings?.soundboardPads;
+      const matchedPad = customPads?.find(
+        (p: SoundPad) => p.key === soundOrKey || p.id === soundOrKey,
+      );
+      if (matchedPad?.soundUrl) {
+        audioSrc = matchedPad.soundUrl;
+      } else {
+        audioSrc = DEFAULT_AUDIO_MAP[soundOrKey] || "/sounds/bell.mp3";
+      }
+    } catch {
+      audioSrc = DEFAULT_AUDIO_MAP[soundOrKey] || "/sounds/bell.mp3";
     }
   }
+
+  try {
+    const audio = new Audio(audioSrc);
+    audio.volume = 0.9;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn("[Soundboard] Audio playback warning:", err);
+      });
+    }
+  } catch (err) {
+    console.error("[Soundboard] Audio playback error:", err);
+  }
+};
+
+export const playDemoSound = (type: string) => {
+  playSound(type);
 };

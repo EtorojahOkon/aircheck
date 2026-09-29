@@ -103,6 +103,15 @@ export function RecentSessions() {
                     <Bookmark className="h-3 w-3" />
                     {session.chapters.length} Chapters
                   </Badge>
+                  {session.hasRecording && (
+                    <Badge
+                      variant="outline"
+                      className="rounded-full px-2.5 py-0.5 text-xs bg-indigo-500/10 border-indigo-500/20 text-indigo-400 gap-1 font-medium"
+                    >
+                      <Radio className="h-3 w-3" />
+                      Recorded
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Action Link */}

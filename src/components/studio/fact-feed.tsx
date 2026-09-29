@@ -4,6 +4,7 @@ import { CheckCircle2, Search, Bookmark } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FactItem } from "@/types/studio";
+import { useStudioStore } from "@/store/studio-store";
 
 interface FactCheckFeedProps {
   facts: FactItem[];
@@ -11,6 +12,9 @@ interface FactCheckFeedProps {
 }
 
 export function FactCheckFeed({ facts, onPinFact }: FactCheckFeedProps) {
+  const { settings } = useStudioStore();
+  const agentName = settings?.agentName;
+
   return (
     <Card className="rounded-3xl bg-zinc-900/40 h-[340px] ring-0 flex flex-col">
       <CardHeader className="p-5  pb-5">
@@ -37,7 +41,7 @@ export function FactCheckFeed({ facts, onPinFact }: FactCheckFeedProps) {
             </h4>
             <p className="text-xs text-zinc-400 max-w-[220px]">
               Ask &ldquo;When did Voyager 1 launch?&rdquo; or wonder about
-              numbers and Jamie will whisper the answer.
+              numbers and {agentName} will whisper the answer.
             </p>
           </div>
         ) : (

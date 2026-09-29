@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist, StateStorage, createJSONStorage } from "zustand/middleware";
 import { get, set, del } from "idb-keyval";
-import { StudioSession } from "@/types/studio";
+import { StudioSession, StudioSettings } from "@/types/studio";
+import { DEFAULT_PADS, SoundPad } from "@/lib/soundboard";
 
 const indexedDBStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
@@ -15,24 +16,42 @@ const indexedDBStorage: StateStorage = {
   },
 };
 
+export const DEFAULT_STUDIO_SETTINGS: StudioSettings = {
+  agentName: "Jamie",
+  defaultVoice: "ivy",
+  personality: "professional",
+  soundboardPads: DEFAULT_PADS,
+};
+
 interface StudioState {
   sessions: Record<string, StudioSession>;
   activeSessionId: string | null;
+  settings: StudioSettings;
 
   setActiveSession: (id: string | null) => void;
   createSession: (name: string) => StudioSession;
   setSession: (session: StudioSession) => void;
   updateSession: (id: string, data: Partial<StudioSession>) => void;
   deleteSession: (id: string) => void;
+
+  // Global Settings Actions
+  updateSettings: (data: Partial<StudioSettings>) => void;
+  addSoundPad: (pad: SoundPad) => void;
+  updateSoundPad: (id: string, pad: Partial<SoundPad>) => void;
+  deleteSoundPad: (id: string) => void;
+  resetSoundPads: () => void;
+  resetAllSettings: () => void;
+
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
 }
 
 export const useStudioStore = create<StudioState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sessions: {},
       activeSessionId: null,
+      settings: DEFAULT_STUDIO_SETTINGS,
       _hasHydrated: false,
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
@@ -46,6 +65,7 @@ export const useStudioStore = create<StudioState>()(
           name,
           facts: [],
           chapters: [],
+          transcript: [],
           lastWhisper: null,
           createdAt: now,
           updatedAt: now,
@@ -90,6 +110,61 @@ export const useStudioStore = create<StudioState>()(
               state.activeSessionId === id ? null : state.activeSessionId,
           };
         }),
+
+      updateSettings: (data) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            ...data,
+          },
+        })),
+
+      addSoundPad: (pad) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            soundboardPads: [
+              ...(state.settings.soundboardPads || DEFAULT_PADS),
+              pad,
+            ],
+          },
+        })),
+
+      updateSoundPad: (id, padUpdate) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            soundboardPads: (state.settings.soundboardPads || DEFAULT_PADS).map(
+              (pad) =>
+                pad.id === id || pad.key === id
+                  ? { ...pad, ...padUpdate }
+                  : pad,
+            ),
+          },
+        })),
+
+      deleteSoundPad: (id) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            soundboardPads: (
+              state.settings.soundboardPads || DEFAULT_PADS
+            ).filter((pad) => pad.id !== id && pad.key !== id),
+          },
+        })),
+
+      resetSoundPads: () =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            soundboardPads: DEFAULT_PADS,
+          },
+        })),
+
+      resetAllSettings: () =>
+        set(() => ({
+          settings: DEFAULT_STUDIO_SETTINGS,
+        })),
     }),
     {
       name: "aircheck-studio",
@@ -97,6 +172,16 @@ export const useStudioStore = create<StudioState>()(
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },
+      // blob: URLs are tab-scoped — strip them before writing to IndexedDB
+      partialize: (state) => ({
+        ...state,
+        sessions: Object.fromEntries(
+          Object.entries(state.sessions).map(([id, session]) => [
+            id,
+            { ...session, recordingUrl: undefined },
+          ]),
+        ),
+      }),
     },
   ),
 );
